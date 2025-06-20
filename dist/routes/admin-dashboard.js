@@ -1,12 +1,14 @@
-import { Router } from "express";
-import { AdminDashboardController } from "../controllers/admin-dashboard.controller";
-import { authenticateToken } from "../middleware/auth";
-const router = Router();
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const admin_dashboard_controller_1 = require("../controllers/admin-dashboard.controller");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
 // All admin dashboard routes require authentication
-router.use(authenticateToken);
+router.use(auth_1.authenticateToken);
 // Admin dashboard data endpoints
-router.get("/stats", AdminDashboardController.getDashboardStats);
-router.get("/state-overview", AdminDashboardController.getStateOverview);
-router.get("/overview", AdminDashboardController.getDashboardOverview);
-export default router;
+router.get("/stats", admin_dashboard_controller_1.AdminDashboardController.getDashboardStats);
+router.get("/state-overview", admin_dashboard_controller_1.AdminDashboardController.getStateOverview);
+router.get("/overview", admin_dashboard_controller_1.AdminDashboardController.getDashboardOverview);
+exports.default = router;
 //# sourceMappingURL=admin-dashboard.js.map

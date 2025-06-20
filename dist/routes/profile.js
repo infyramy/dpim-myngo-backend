@@ -1,16 +1,18 @@
-import { Router } from 'express';
-import { ProfileController } from '../controllers/profile.controller';
-import { authenticateToken } from '../middleware/auth';
-const router = Router();
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const profile_controller_1 = require("../controllers/profile.controller");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
 // All profile routes require authentication
-router.use(authenticateToken);
+router.use(auth_1.authenticateToken);
 // Get current user's profile
-router.get('/', ProfileController.getProfile);
+router.get('/', profile_controller_1.ProfileController.getProfile);
 // Update current user's profile
-router.put('/', ProfileController.updateProfile);
+router.put('/', profile_controller_1.ProfileController.updateProfile);
 // Upload profile avatar
-router.post('/avatar', ProfileController.uploadAvatar);
+router.post('/avatar', profile_controller_1.ProfileController.uploadAvatar);
 // Update notification preferences
-router.put('/notifications', ProfileController.updateNotificationPreferences);
-export default router;
+router.put('/notifications', profile_controller_1.ProfileController.updateNotificationPreferences);
+exports.default = router;
 //# sourceMappingURL=profile.js.map

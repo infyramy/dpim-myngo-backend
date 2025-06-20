@@ -1,6 +1,9 @@
-import { db } from "../config/database";
-import { sendSuccess, sendError } from "../utils/response";
-export class ProfileController {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ProfileController = void 0;
+const database_1 = require("../config/database");
+const response_1 = require("../utils/response");
+class ProfileController {
     /**
      * Get current user's profile
      */
@@ -8,9 +11,9 @@ export class ProfileController {
         try {
             const userId = req.user?.id;
             if (!userId) {
-                return sendError(res, 401, "User not authenticated");
+                return (0, response_1.sendError)(res, 401, "User not authenticated");
             }
-            const profile = await db("user")
+            const profile = await (0, database_1.db)("user")
                 .where({ user_id: userId })
                 .select([
                 "user_id",
@@ -33,7 +36,7 @@ export class ProfileController {
             ])
                 .first();
             if (!profile) {
-                return sendError(res, 404, "Profile not found");
+                return (0, response_1.sendError)(res, 404, "Profile not found");
             }
             // Parse social media JSON if it exists
             let socialMedia = null;
@@ -51,11 +54,11 @@ export class ProfileController {
                 email_notifications: true,
                 sms_notifications: true,
             };
-            return sendSuccess(res, profileData, "Profile retrieved successfully");
+            return (0, response_1.sendSuccess)(res, profileData, "Profile retrieved successfully");
         }
         catch (error) {
             console.error("Get profile error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     /**
@@ -65,18 +68,18 @@ export class ProfileController {
         try {
             const userId = req.user?.id;
             if (!userId) {
-                return sendError(res, 401, "User not authenticated");
+                return (0, response_1.sendError)(res, 401, "User not authenticated");
             }
             const updateData = req.body;
             // Validate required fields if they're being updated
             if (updateData.fullname && updateData.fullname.trim().length === 0) {
-                return sendError(res, 400, "Full name cannot be empty");
+                return (0, response_1.sendError)(res, 400, "Full name cannot be empty");
             }
             if (updateData.mobile_number) {
                 // Basic mobile validation (Malaysian format)
                 const mobileRegex = /^(\+?6?01)[0-46-9]-*\d{7,8}$/;
                 if (!mobileRegex.test(updateData.mobile_number.replace(/[\s-]/g, ""))) {
-                    return sendError(res, 400, "Invalid mobile number format");
+                    return (0, response_1.sendError)(res, 400, "Invalid mobile number format");
                 }
             }
             // Prepare update object with proper database field names
@@ -115,14 +118,14 @@ export class ProfileController {
                 dbUpdateData.user_social_media = JSON.stringify(updateData.social_media);
             }
             // Update the profile
-            const updatedRows = await db("user")
+            const updatedRows = await (0, database_1.db)("user")
                 .where({ user_id: userId })
                 .update(dbUpdateData);
             if (updatedRows === 0) {
-                return sendError(res, 404, "Profile not found");
+                return (0, response_1.sendError)(res, 404, "Profile not found");
             }
             // Fetch the updated profile
-            const updatedProfile = await db("user")
+            const updatedProfile = await (0, database_1.db)("user")
                 .where({ user_id: userId })
                 .select([
                 "user_id",
@@ -160,11 +163,11 @@ export class ProfileController {
                 email_notifications: true,
                 sms_notifications: true,
             };
-            return sendSuccess(res, profileData, "Profile updated successfully");
+            return (0, response_1.sendSuccess)(res, profileData, "Profile updated successfully");
         }
         catch (error) {
             console.error("Update profile error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     /**
@@ -174,16 +177,16 @@ export class ProfileController {
         try {
             const userId = req.user?.id;
             if (!userId) {
-                return sendError(res, 401, "User not authenticated");
+                return (0, response_1.sendError)(res, 401, "User not authenticated");
             }
             // This is a placeholder for file upload functionality
             // You would need to implement actual file upload logic here
             // using multer or similar middleware
-            return sendSuccess(res, { message: "Avatar upload functionality to be implemented" }, "Avatar upload endpoint ready");
+            return (0, response_1.sendSuccess)(res, { message: "Avatar upload functionality to be implemented" }, "Avatar upload endpoint ready");
         }
         catch (error) {
             console.error("Upload avatar error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     /**
@@ -193,7 +196,7 @@ export class ProfileController {
         try {
             const userId = req.user?.id;
             if (!userId) {
-                return sendError(res, 401, "User not authenticated");
+                return (0, response_1.sendError)(res, 401, "User not authenticated");
             }
             const { email_notifications, sms_notifications } = req.body;
             // For now, we'll store these preferences in a simple way
@@ -204,17 +207,18 @@ export class ProfileController {
             };
             // Store preferences as JSON in a user preferences field
             // or create a separate user_preferences table
-            await db("user")
+            await (0, database_1.db)("user")
                 .where({ user_id: userId })
                 .update({
                 user_notification_preferences: JSON.stringify(preferences),
             });
-            return sendSuccess(res, preferences, "Notification preferences updated successfully");
+            return (0, response_1.sendSuccess)(res, preferences, "Notification preferences updated successfully");
         }
         catch (error) {
             console.error("Update notification preferences error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
 }
+exports.ProfileController = ProfileController;
 //# sourceMappingURL=profile.controller.js.map
