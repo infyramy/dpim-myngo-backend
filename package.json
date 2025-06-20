@@ -26,6 +26,7 @@
     "knex": "^3.1.0",
     "morgan": "^1.10.0",
     "mysql2": "^3.14.1",
+    "node-mailjet": "^6.0.8",
     "pg": "^8.16.0"
   },
   "devDependencies": {
@@ -37,6 +38,7 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/morgan": "^1.9.9",
     "@types/node": "^18.16.17",
+    "@types/node-mailjet": "^3.3.12",
     "@types/pg": "^8.15.4",
     "tsx": "^4.6.2",
     "typescript": "~5.0.4",
@@ -46,4 +48,4 @@
     "node": ">=16.0.0",
     "npm": ">=7.0.0"
   }
-} 
+}
