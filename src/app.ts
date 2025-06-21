@@ -31,20 +31,17 @@ console.log("ALLOWED_ORIGINS:", allowedOrigins);
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true); // allow non-browser requests
-      if (allowedOrigins && allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      // Allow any subdomain of kipidap.my
-      const kipidapRegex = /^https?:\/\/[a-zA-Z0-9.-]*kipidap\.my$/;
-      if (kipidapRegex.test(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error('Not allowed by CORS'));
-    },
+    // origin: process.env.ALLOWED_ORIGINS?.split(",") || [
+    //   "http://localhost:3000",
+    //   "http://localhost:5173",
+    // ],
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "https://myngo.kipidap.my",
+    ],
     credentials: true,
-    exposedHeaders: ["X-New-Access-Token"], // Expose our custom header to client
+    exposedHeaders: ["X-New-Access-Token"],
   })
 );
 
