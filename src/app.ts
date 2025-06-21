@@ -23,11 +23,28 @@ const app = express();
 
 // Security middleware
 app.use(helmet());
+
+// CORS configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : [
+      "https://myngo.0o0.my", // Production frontend
+      "http://localhost:3000", // Local dev
+      "http://localhost:5173", // Local dev (Vite)
+    ];
 app.use(
   cors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || ["http://localhost:3000", "http://localhost:5173"],
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        return callback(null, true);
+      } else {
+        return callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
-    exposedHeaders: ["X-New-Access-Token"], // Expose our custom header to client
+    exposedHeaders: ["X-New-Access-Token"],
   })
 );
 
