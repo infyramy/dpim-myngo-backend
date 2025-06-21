@@ -25,10 +25,17 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    // origin: process.env.ALLOWED_ORIGINS?.split(',') || ["http://localhost:3000", "http://localhost:5173"],
-    origin: ["http://localhost:3000", "http://localhost:5173", "https://myngo.kipidap.my"],
+    // origin: process.env.ALLOWED_ORIGINS?.split(",") || [
+    //   "http://localhost:3000",
+    //   "http://localhost:5173",
+    // ],
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "https://myngo.kipidap.my",
+    ],
     credentials: true,
-    exposedHeaders: ["X-New-Access-Token"], // Expose our custom header to client
+    exposedHeaders: ["X-New-Access-Token"],
   })
 );
 
