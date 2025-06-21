@@ -23,6 +23,12 @@ const app = express();
 
 // Security middleware
 app.use(helmet());
+
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : undefined; // fallback to custom function for *.kipidap.my
+console.log("ALLOWED_ORIGINS:", allowedOrigins);
+
 app.use(
   cors({
     // origin: process.env.ALLOWED_ORIGINS?.split(",") || [

@@ -1,19 +1,22 @@
-import { db } from "../config/database";
-import { sendSuccess, sendError } from "../utils/response";
-export class StatesController {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.StatesController = void 0;
+const database_1 = require("../config/database");
+const response_1 = require("../utils/response");
+class StatesController {
     /**
      * Get all states
      */
     static async getStates(_req, res) {
         try {
-            const states = await db("states")
+            const states = await (0, database_1.db)("states")
                 .select("state_title as title", "state_code as code", "state_flag as flag")
                 .where("state_status", 1);
-            return sendSuccess(res, { states }, "States fetched successfully");
+            return (0, response_1.sendSuccess)(res, { states }, "States fetched successfully");
         }
         catch (error) {
             console.error("States error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     /**
@@ -21,17 +24,17 @@ export class StatesController {
      */
     static async getStatesWithAdmins(_req, res) {
         try {
-            const states = await db("states")
+            const states = await (0, database_1.db)("states")
                 .select("states.state_id as id", "states.state_title as name", "states.state_code as code", "states.state_flag as flag", "states.state_status as isActive", "operator.op_user_id as adminId", "user.user_fullname as adminName", "user.user_email as adminEmail")
                 .leftJoin("operator", "operator.op_states_id", "states.state_id")
                 .leftJoin("user", "user.user_id", "operator.op_user_id")
                 .where("states.state_status", 1)
                 .orderBy("states.state_title");
-            return sendSuccess(res, { states }, "States with admins fetched successfully");
+            return (0, response_1.sendSuccess)(res, { states }, "States with admins fetched successfully");
         }
         catch (error) {
             console.error("States with admins error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     /**
@@ -41,22 +44,22 @@ export class StatesController {
         try {
             const { stateId, adminName, adminEmail } = req.body;
             if (!stateId || !adminName || !adminEmail) {
-                return sendError(res, 400, "State ID, admin name, and email are required");
+                return (0, response_1.sendError)(res, 400, "State ID, admin name, and email are required");
             }
             // Check if state exists
-            const state = await db("states").where("state_id", stateId).first();
+            const state = await (0, database_1.db)("states").where("state_id", stateId).first();
             if (!state) {
-                return sendError(res, 404, "State not found");
+                return (0, response_1.sendError)(res, 404, "State not found");
             }
             // Check if email already exists
-            const existingUser = await db("user")
+            const existingUser = await (0, database_1.db)("user")
                 .where("user_email", adminEmail)
                 .first();
             if (existingUser) {
-                return sendError(res, 400, "Email already exists");
+                return (0, response_1.sendError)(res, 400, "Email already exists");
             }
             // Start transaction
-            const trx = await db.transaction();
+            const trx = await database_1.db.transaction();
             try {
                 // Create new user with admin role
                 const [userId] = await trx("user").insert({
@@ -89,7 +92,7 @@ export class StatesController {
                     });
                 }
                 await trx.commit();
-                return sendSuccess(res, { userId }, "Admin assigned successfully");
+                return (0, response_1.sendSuccess)(res, { userId }, "Admin assigned successfully");
             }
             catch (error) {
                 await trx.rollback();
@@ -98,7 +101,7 @@ export class StatesController {
         }
         catch (error) {
             console.error("Assign admin error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     /**
@@ -109,34 +112,34 @@ export class StatesController {
             const { stateId } = req.params;
             const { adminName, adminEmail } = req.body;
             if (!adminName || !adminEmail) {
-                return sendError(res, 400, "Admin name and email are required");
+                return (0, response_1.sendError)(res, 400, "Admin name and email are required");
             }
             // Get current operator for this state
-            const operator = await db("operator")
+            const operator = await (0, database_1.db)("operator")
                 .where("op_states_id", stateId)
                 .first();
             if (!operator) {
-                return sendError(res, 404, "No admin found for this state");
+                return (0, response_1.sendError)(res, 404, "No admin found for this state");
             }
             // Check if email already exists (excluding current user)
-            const existingUser = await db("user")
+            const existingUser = await (0, database_1.db)("user")
                 .where("user_email", adminEmail)
                 .where("user_id", "!=", operator.op_user_id)
                 .first();
             if (existingUser) {
-                return sendError(res, 400, "Email already exists");
+                return (0, response_1.sendError)(res, 400, "Email already exists");
             }
             // Update user information
-            await db("user").where("user_id", operator.op_user_id).update({
+            await (0, database_1.db)("user").where("user_id", operator.op_user_id).update({
                 user_fullname: adminName,
                 user_email: adminEmail,
                 user_modified_at: new Date(),
             });
-            return sendSuccess(res, {}, "Admin updated successfully");
+            return (0, response_1.sendSuccess)(res, {}, "Admin updated successfully");
         }
         catch (error) {
             console.error("Update admin error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     /**
@@ -146,21 +149,21 @@ export class StatesController {
         try {
             const { stateId } = req.params;
             // Get current operator for this state
-            const operator = await db("operator")
+            const operator = await (0, database_1.db)("operator")
                 .where("op_states_id", stateId)
                 .first();
             if (!operator) {
-                return sendError(res, 404, "No admin found for this state");
+                return (0, response_1.sendError)(res, 404, "No admin found for this state");
             }
             // Start transaction
-            const trx = await db.transaction();
+            const trx = await database_1.db.transaction();
             try {
                 // Delete operator record
                 await trx("operator").where("op_states_id", stateId).del();
                 // Delete user record
                 await trx("user").where("user_id", operator.op_user_id).del();
                 await trx.commit();
-                return sendSuccess(res, {}, "Admin removed successfully");
+                return (0, response_1.sendSuccess)(res, {}, "Admin removed successfully");
             }
             catch (error) {
                 await trx.rollback();
@@ -169,8 +172,9 @@ export class StatesController {
         }
         catch (error) {
             console.error("Remove admin error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
 }
+exports.StatesController = StatesController;
 //# sourceMappingURL=states.controller.js.map

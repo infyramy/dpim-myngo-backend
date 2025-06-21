@@ -1,12 +1,15 @@
-import { db } from "../config/database";
-import { sendSuccess, sendError } from "../utils/response";
-export class ProductsController {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ProductsController = void 0;
+const database_1 = require("../config/database");
+const response_1 = require("../utils/response");
+class ProductsController {
     /**
      * Get all products in the system (for product matching)
      */
     static async getAllProducts(_req, res) {
         try {
-            const products = await db("products")
+            const products = await (0, database_1.db)("products")
                 .leftJoin("businesses", "products.p_business_id", "businesses.b_id")
                 .select("products.p_id as id", "products.p_name as name", "products.p_description as description", "products.p_category as category", "products.p_image_url as image", "products.p_link as link", "products.p_status as status", "products.p_featured as featured", "products.p_slug as slug", "products.p_business_id as businessId", "products.p_created_at as createdAt", "products.p_modified_at as modifiedAt", 
             // Business fields
@@ -17,7 +20,7 @@ export class ProductsController {
             // Get tags for all products
             const productIds = products.map((p) => p.id);
             const productTags = productIds.length > 0
-                ? await db("product_tags")
+                ? await (0, database_1.db)("product_tags")
                     .join("tags", "product_tags.pt_tag_id", "tags.t_id")
                     .select("product_tags.pt_product_id as productId", "tags.t_id as id", "tags.t_name as name", "tags.t_slug as slug")
                     .whereIn("product_tags.pt_product_id", productIds)
@@ -81,11 +84,11 @@ export class ProductsController {
                     }
                     : null,
             })));
-            return sendSuccess(res, { products: formattedProducts }, "All products fetched successfully");
+            return (0, response_1.sendSuccess)(res, { products: formattedProducts }, "All products fetched successfully");
         }
         catch (error) {
             console.error("Get all products error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     static async getLookupTitle(lookupValue, lookupId) {
@@ -96,7 +99,7 @@ export class ProductsController {
             lookupGroupcode = 6;
         else if (lookupValue === "business_category")
             lookupGroupcode = 12;
-        const lookup = await db("lookup")
+        const lookup = await (0, database_1.db)("lookup")
             .select("lookup_title as title")
             .where("lookup_groupcode", lookupGroupcode)
             .where("lookup_value", lookupId)
@@ -111,9 +114,9 @@ export class ProductsController {
             // Get user ID from request
             const userId = req.user?.id;
             if (!userId) {
-                return sendError(res, 401, "User authentication required");
+                return (0, response_1.sendError)(res, 401, "User authentication required");
             }
-            const products = await db("products")
+            const products = await (0, database_1.db)("products")
                 .leftJoin("businesses", "products.p_business_id", "businesses.b_id")
                 .select("products.p_id as id", "products.p_name as name", "products.p_description as description", "products.p_category as category", "products.p_image_url as image", "products.p_link as link", "products.p_status as status", "products.p_featured as featured", "products.p_slug as slug", "products.p_business_id as businessId", "products.p_created_at as createdAt", "products.p_modified_at as modifiedAt", 
             // Business fields
@@ -124,7 +127,7 @@ export class ProductsController {
             // Get tags for all products
             const productIds = products.map((p) => p.id);
             const productTags = productIds.length > 0
-                ? await db("product_tags")
+                ? await (0, database_1.db)("product_tags")
                     .join("tags", "product_tags.pt_tag_id", "tags.t_id")
                     .select("product_tags.pt_product_id as productId", "tags.t_id as id", "tags.t_name as name", "tags.t_slug as slug")
                     .whereIn("product_tags.pt_product_id", productIds)
@@ -175,11 +178,11 @@ export class ProductsController {
                     }
                     : null,
             }));
-            return sendSuccess(res, { products: formattedProducts }, "Products fetched successfully");
+            return (0, response_1.sendSuccess)(res, { products: formattedProducts }, "Products fetched successfully");
         }
         catch (error) {
             console.error("Get products error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     /**
@@ -198,13 +201,13 @@ export class ProductsController {
                 .replace(/-+/g, "-")
                 .replace(/^-+|-+$/g, "");
             // Check if tag exists for this user
-            let existingTag = await db("tags")
+            let existingTag = await (0, database_1.db)("tags")
                 .where("t_name", cleanTagName)
                 .where("t_user_id", userId)
                 .first();
             if (!existingTag) {
                 // Create new tag
-                const [tagId] = await db("tags").insert({
+                const [tagId] = await (0, database_1.db)("tags").insert({
                     t_name: cleanTagName,
                     t_slug: slug,
                     t_user_id: userId,
@@ -228,14 +231,14 @@ export class ProductsController {
      */
     static async associateProductTags(productId, tagIds) {
         // Remove existing associations
-        await db("product_tags").where("pt_product_id", productId).del();
+        await (0, database_1.db)("product_tags").where("pt_product_id", productId).del();
         // Add new associations
         if (tagIds.length > 0) {
             const productTagData = tagIds.map((tagId) => ({
                 pt_product_id: productId,
                 pt_tag_id: tagId,
             }));
-            await db("product_tags").insert(productTagData);
+            await (0, database_1.db)("product_tags").insert(productTagData);
         }
     }
     /**
@@ -246,12 +249,12 @@ export class ProductsController {
             const { name, description, category, image, link, status, featured, businessId, tags: tagNames = [], } = req.body;
             // Basic validation
             if (!name || !description || !category) {
-                return sendError(res, 400, "Name, description, and category are required");
+                return (0, response_1.sendError)(res, 400, "Name, description, and category are required");
             }
             // Get user ID from request
             const userId = req.user?.id;
             if (!userId) {
-                return sendError(res, 401, "User authentication required");
+                return (0, response_1.sendError)(res, 401, "User authentication required");
             }
             // Generate slug from name
             const slug = name
@@ -264,7 +267,7 @@ export class ProductsController {
             let finalSlug = slug;
             let counter = 1;
             while (true) {
-                const existingProduct = await db("products")
+                const existingProduct = await (0, database_1.db)("products")
                     .where("p_slug", finalSlug)
                     .where("p_user_id", userId)
                     .first();
@@ -287,7 +290,7 @@ export class ProductsController {
                 p_user_id: userId,
             };
             // Insert the product
-            const [productId] = await db("products").insert(productData);
+            const [productId] = await (0, database_1.db)("products").insert(productData);
             // Handle tags
             let productTags = [];
             if (Array.isArray(tagNames) && tagNames.length > 0) {
@@ -296,7 +299,7 @@ export class ProductsController {
                 await ProductsController.associateProductTags(productId, tagIds);
             }
             // Fetch the created product with proper field mapping
-            const createdProduct = await db("products")
+            const createdProduct = await (0, database_1.db)("products")
                 .select("p_id as id", "p_name as name", "p_description as description", "p_category as category", "p_image_url as image", "p_link as link", "p_status as status", "p_featured as featured", "p_slug as slug", "p_business_id as businessId", "p_created_at as createdAt", "p_modified_at as modifiedAt")
                 .where("p_id", productId)
                 .first();
@@ -309,11 +312,11 @@ export class ProductsController {
                     "https://placehold.co/600x400/e2e8f0/64748b?text=No+Image",
                 tags: productTags,
             };
-            return sendSuccess(res, { product: formattedProduct }, "Product created successfully");
+            return (0, response_1.sendSuccess)(res, { product: formattedProduct }, "Product created successfully");
         }
         catch (error) {
             console.error("Create product error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     /**
@@ -325,24 +328,24 @@ export class ProductsController {
             const { name, description, category, image, link, status, featured, businessId, tags: tagNames = [], } = req.body;
             // Validate product ID
             if (!productId || isNaN(Number(productId))) {
-                return sendError(res, 400, "Invalid product ID");
+                return (0, response_1.sendError)(res, 400, "Invalid product ID");
             }
             // Get user ID from request
             const userId = req.user?.id;
             if (!userId) {
-                return sendError(res, 401, "User authentication required");
+                return (0, response_1.sendError)(res, 401, "User authentication required");
             }
             // Check if product exists and belongs to user
-            const existingProduct = await db("products")
+            const existingProduct = await (0, database_1.db)("products")
                 .where("p_id", productId)
                 .where("p_user_id", userId)
                 .first();
             if (!existingProduct) {
-                return sendError(res, 404, "Product not found or access denied");
+                return (0, response_1.sendError)(res, 404, "Product not found or access denied");
             }
             // Basic validation
             if (!name || !description || !category) {
-                return sendError(res, 400, "Name, description, and category are required");
+                return (0, response_1.sendError)(res, 400, "Name, description, and category are required");
             }
             // Generate slug from name if name changed
             let finalSlug = existingProduct.p_slug;
@@ -357,7 +360,7 @@ export class ProductsController {
                 let counter = 1;
                 finalSlug = slug;
                 while (true) {
-                    const duplicateSlug = await db("products")
+                    const duplicateSlug = await (0, database_1.db)("products")
                         .where("p_slug", finalSlug)
                         .where("p_user_id", userId)
                         .where("p_id", "!=", productId)
@@ -382,7 +385,7 @@ export class ProductsController {
                 p_modified_at: new Date(),
             };
             // Update the product
-            await db("products")
+            await (0, database_1.db)("products")
                 .where("p_id", productId)
                 .where("p_user_id", userId)
                 .update(productData);
@@ -398,7 +401,7 @@ export class ProductsController {
                 await ProductsController.associateProductTags(Number(productId), []);
             }
             // Fetch the updated product with proper field mapping
-            const updatedProduct = await db("products")
+            const updatedProduct = await (0, database_1.db)("products")
                 .select("p_id as id", "p_name as name", "p_description as description", "p_category as category", "p_image_url as image", "p_link as link", "p_status as status", "p_featured as featured", "p_slug as slug", "p_business_id as businessId", "p_created_at as createdAt", "p_modified_at as modifiedAt")
                 .where("p_id", productId)
                 .first();
@@ -411,11 +414,11 @@ export class ProductsController {
                     "https://placehold.co/600x400/e2e8f0/64748b?text=No+Image",
                 tags: productTags,
             };
-            return sendSuccess(res, { product: formattedProduct }, "Product updated successfully");
+            return (0, response_1.sendSuccess)(res, { product: formattedProduct }, "Product updated successfully");
         }
         catch (error) {
             console.error("Update product error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     /**
@@ -426,31 +429,31 @@ export class ProductsController {
             const productId = req.params.id;
             // Validate product ID
             if (!productId || isNaN(Number(productId))) {
-                return sendError(res, 400, "Invalid product ID");
+                return (0, response_1.sendError)(res, 400, "Invalid product ID");
             }
             // Get user ID from request
             const userId = req.user?.id;
             if (!userId) {
-                return sendError(res, 401, "User authentication required");
+                return (0, response_1.sendError)(res, 401, "User authentication required");
             }
             // Check if product exists and belongs to user
-            const existingProduct = await db("products")
+            const existingProduct = await (0, database_1.db)("products")
                 .where("p_id", productId)
                 .where("p_user_id", userId)
                 .first();
             if (!existingProduct) {
-                return sendError(res, 404, "Product not found or access denied");
+                return (0, response_1.sendError)(res, 404, "Product not found or access denied");
             }
             // Delete the product (cascade will handle product_tags deletion)
-            await db("products")
+            await (0, database_1.db)("products")
                 .where("p_id", productId)
                 .where("p_user_id", userId)
                 .del();
-            return sendSuccess(res, { productId: Number(productId) }, "Product deleted successfully");
+            return (0, response_1.sendSuccess)(res, { productId: Number(productId) }, "Product deleted successfully");
         }
         catch (error) {
             console.error("Delete product error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     /**
@@ -461,24 +464,24 @@ export class ProductsController {
             const productId = req.params.id;
             // Validate product ID
             if (!productId || isNaN(Number(productId))) {
-                return sendError(res, 400, "Invalid product ID");
+                return (0, response_1.sendError)(res, 400, "Invalid product ID");
             }
             // Get user ID from request
             const userId = req.user?.id;
             if (!userId) {
-                return sendError(res, 401, "User authentication required");
+                return (0, response_1.sendError)(res, 401, "User authentication required");
             }
             // Fetch the product
-            const product = await db("products")
+            const product = await (0, database_1.db)("products")
                 .select("p_id as id", "p_name as name", "p_description as description", "p_category as category", "p_image_url as image", "p_link as link", "p_status as status", "p_featured as featured", "p_slug as slug", "p_business_id as businessId", "p_created_at as createdAt", "p_modified_at as modifiedAt")
                 .where("p_id", productId)
                 .where("p_user_id", userId)
                 .first();
             if (!product) {
-                return sendError(res, 404, "Product not found or access denied");
+                return (0, response_1.sendError)(res, 404, "Product not found or access denied");
             }
             // Get tags for this product
-            const tags = await db("product_tags")
+            const tags = await (0, database_1.db)("product_tags")
                 .join("tags", "product_tags.pt_tag_id", "tags.t_id")
                 .select("tags.t_id as id", "tags.t_name as name", "tags.t_slug as slug")
                 .where("product_tags.pt_product_id", productId);
@@ -491,11 +494,11 @@ export class ProductsController {
                     "https://placehold.co/600x400/e2e8f0/64748b?text=No+Image",
                 tags: tags,
             };
-            return sendSuccess(res, { product: formattedProduct }, "Product fetched successfully");
+            return (0, response_1.sendSuccess)(res, { product: formattedProduct }, "Product fetched successfully");
         }
         catch (error) {
             console.error("Get product by ID error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     /**
@@ -503,14 +506,14 @@ export class ProductsController {
      */
     static async getAllTags(_req, res) {
         try {
-            const tags = await db("tags")
+            const tags = await (0, database_1.db)("tags")
                 .select("t_id as id", "t_name as name", "t_slug as slug", "t_created_at as createdAt")
                 .orderBy("t_name", "asc");
-            return sendSuccess(res, { tags }, "All tags fetched successfully");
+            return (0, response_1.sendSuccess)(res, { tags }, "All tags fetched successfully");
         }
         catch (error) {
             console.error("Get all tags error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     /**
@@ -521,18 +524,19 @@ export class ProductsController {
             // Get user ID from request
             const userId = req.user?.id;
             if (!userId) {
-                return sendError(res, 401, "User authentication required");
+                return (0, response_1.sendError)(res, 401, "User authentication required");
             }
-            const tags = await db("tags")
+            const tags = await (0, database_1.db)("tags")
                 .select("t_id as id", "t_name as name", "t_slug as slug", "t_created_at as createdAt")
                 .where("t_user_id", userId)
                 .orderBy("t_name", "asc");
-            return sendSuccess(res, { tags }, "Tags fetched successfully");
+            return (0, response_1.sendSuccess)(res, { tags }, "Tags fetched successfully");
         }
         catch (error) {
             console.error("Get user tags error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
 }
+exports.ProductsController = ProductsController;
 //# sourceMappingURL=products.controller.js.map

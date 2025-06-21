@@ -1,16 +1,19 @@
-import { verifyAccessToken, verifyRefreshToken, generateAccessToken, generateRefreshToken } from "../utils/jwt";
-import { sendError } from "../utils/response";
-import { db } from "../config/database";
-export const authenticateToken = async (req, res, next) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.authenticateToken = void 0;
+const jwt_1 = require("../utils/jwt");
+const response_1 = require("../utils/response");
+const database_1 = require("../config/database");
+const authenticateToken = async (req, res, next) => {
     console.log("🔵 AUTH: Middleware started");
     const authHeader = req.headers["authorization"];
     const accessToken = authHeader && authHeader.split(" ")[1];
     if (!accessToken) {
-        return sendError(res, 401, "Access token required");
+        return (0, response_1.sendError)(res, 401, "Access token required");
     }
     try {
         // Try to verify access token first
-        const user = verifyAccessToken(accessToken);
+        const user = (0, jwt_1.verifyAccessToken)(accessToken);
         console.log("🔵 AUTH: Access token valid, user:", user);
         req.user = user;
         return next();
@@ -21,24 +24,24 @@ export const authenticateToken = async (req, res, next) => {
         const refreshToken = req.cookies.refreshToken;
         if (!refreshToken) {
             console.log("🔵 AUTH: No refresh token found");
-            return sendError(res, 401, "Access token expired and no refresh token provided");
+            return (0, response_1.sendError)(res, 401, "Access token expired and no refresh token provided");
         }
         try {
             // Verify refresh token
-            const decoded = verifyRefreshToken(refreshToken);
+            const decoded = (0, jwt_1.verifyRefreshToken)(refreshToken);
             console.log("🔵 AUTH: Refresh token valid, user:", decoded);
             // Get user details to ensure user still exists and is active
-            const user = await db("user").where({ user_id: decoded.id }).first();
+            const user = await (0, database_1.db)("user").where({ user_id: decoded.id }).first();
             if (!user) {
                 console.log("🔵 AUTH: User not found in database");
                 res.clearCookie("refreshToken");
-                return sendError(res, 401, "User not found");
+                return (0, response_1.sendError)(res, 401, "User not found");
             }
             // Check if user is still active/logged in
             if (user.user_logged_in === 0) {
                 console.log("🔵 AUTH: User is logged out");
                 res.clearCookie("refreshToken");
-                return sendError(res, 401, "User is logged out");
+                return (0, response_1.sendError)(res, 401, "User is logged out");
             }
             // Generate new tokens
             const tokenPayload = {
@@ -46,8 +49,8 @@ export const authenticateToken = async (req, res, next) => {
                 email: user.user_email,
                 role: user.user_role || "user",
             };
-            const newAccessToken = generateAccessToken(tokenPayload);
-            const newRefreshToken = generateRefreshToken(tokenPayload);
+            const newAccessToken = (0, jwt_1.generateAccessToken)(tokenPayload);
+            const newRefreshToken = (0, jwt_1.generateRefreshToken)(tokenPayload);
             // Set new refresh token as HTTP-only cookie
             res.cookie("refreshToken", newRefreshToken, {
                 httpOnly: true,
@@ -66,8 +69,9 @@ export const authenticateToken = async (req, res, next) => {
             console.log("🔵 AUTH: Refresh token invalid/expired:", refreshTokenError);
             // Both tokens are invalid, clear refresh token cookie
             res.clearCookie("refreshToken");
-            return sendError(res, 401, "Authentication failed - please login again");
+            return (0, response_1.sendError)(res, 401, "Authentication failed - please login again");
         }
     }
 };
+exports.authenticateToken = authenticateToken;
 //# sourceMappingURL=auth.js.map

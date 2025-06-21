@@ -1,10 +1,13 @@
-import { db } from "../config/database";
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken, } from "../utils/jwt";
-import { sendSuccess, sendError } from "../utils/response";
-import { emailService } from "../services/email";
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AuthController = void 0;
+const database_1 = require("../config/database");
+const jwt_1 = require("../utils/jwt");
+const response_1 = require("../utils/response");
+const email_1 = require("../services/email");
 // In-memory OTP storage (use Redis in production)
 const otpStorage = new Map();
-export class AuthController {
+class AuthController {
     /**
      * Generate a 6-digit OTP code
      */
@@ -29,14 +32,14 @@ export class AuthController {
         try {
             const { email } = req.body;
             if (!email) {
-                return sendError(res, 400, "Email is required");
+                return (0, response_1.sendError)(res, 400, "Email is required");
             }
             // Check if user exists
-            const user = await db("user")
+            const user = await (0, database_1.db)("user")
                 .where({ user_email: email, user_status: 1 })
                 .first();
             if (!user) {
-                return sendError(res, 404, "No account found with this email address");
+                return (0, response_1.sendError)(res, 404, "No account found with this email address");
             }
             // Clean expired OTPs
             AuthController.cleanExpiredOTPs();
@@ -50,13 +53,13 @@ export class AuthController {
                 used: false,
             });
             // Send OTP email
-            await emailService.sendOtpEmail(email, otpCode);
+            await email_1.emailService.sendOtpEmail(email, otpCode);
             // Email sent successfully (no error handling needed for basic implementation)
-            return sendSuccess(res, { message: "OTP sent successfully" }, "Verification code sent to your email");
+            return (0, response_1.sendSuccess)(res, { message: "OTP sent successfully" }, "Verification code sent to your email");
         }
         catch (error) {
             console.error("Send OTP error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     /**
@@ -66,7 +69,7 @@ export class AuthController {
         try {
             const { email, otp } = req.body;
             if (!email || !otp) {
-                return sendError(res, 400, "Email and OTP are required");
+                return (0, response_1.sendError)(res, 400, "Email and OTP are required");
             }
             // Clean expired OTPs
             AuthController.cleanExpiredOTPs();
@@ -74,29 +77,29 @@ export class AuthController {
             const otpData = otpStorage.get(email.toLowerCase());
             console.log("OTP Data: ", otpData);
             if (!otpData) {
-                return sendError(res, 401, "No OTP found for this email. Please request a new code.");
+                return (0, response_1.sendError)(res, 401, "No OTP found for this email. Please request a new code.");
             }
             if (otpData.used) {
-                return sendError(res, 401, "OTP has already been used");
+                return (0, response_1.sendError)(res, 401, "OTP has already been used");
             }
             if (otpData.expiresAt < Date.now()) {
                 otpStorage.delete(email.toLowerCase());
-                return sendError(res, 401, "OTP has expired. Please request a new code.");
+                return (0, response_1.sendError)(res, 401, "OTP has expired. Please request a new code.");
             }
             if (otpData.code !== otp) {
-                return sendError(res, 401, "Invalid OTP code");
+                return (0, response_1.sendError)(res, 401, "Invalid OTP code");
             }
             // Mark OTP as used
             otpData.used = true;
             // Get user details
-            const user = await db("user").where({ user_email: email }).first();
+            const user = await (0, database_1.db)("user").where({ user_email: email }).first();
             if (!user) {
-                return sendError(res, 404, "User not found");
+                return (0, response_1.sendError)(res, 404, "User not found");
             }
             let operatorStates = null;
             // IF role is "operator" then need to get operator states
             if (user.user_role === "operator") {
-                operatorStates = await db("states")
+                operatorStates = await (0, database_1.db)("states")
                     .where({ state_code: user.user_state })
                     .select("state_title", "state_code", "state_flag")
                     .first();
@@ -108,11 +111,11 @@ export class AuthController {
                 role: user.user_role || "user",
                 // is_operator: user.user_is_operator || false,
             };
-            const accessToken = generateAccessToken(tokenPayload);
-            const refreshToken = generateRefreshToken(tokenPayload);
+            const accessToken = (0, jwt_1.generateAccessToken)(tokenPayload);
+            const refreshToken = (0, jwt_1.generateRefreshToken)(tokenPayload);
             // Update last login if the column exists
             try {
-                await db("user")
+                await (0, database_1.db)("user")
                     .where({ user_id: user.user_id })
                     .update({ user_logged_in: 1, user_last_logged_in: new Date() });
             }
@@ -130,7 +133,7 @@ export class AuthController {
             const { password: _, ...userWithoutPassword } = user;
             // Clean up used OTP
             otpStorage.delete(email.toLowerCase());
-            return sendSuccess(res, {
+            return (0, response_1.sendSuccess)(res, {
                 user: userWithoutPassword,
                 operator_states: operatorStates,
                 access_token: accessToken,
@@ -138,7 +141,7 @@ export class AuthController {
         }
         catch (error) {
             console.error("Verify OTP error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     /**
@@ -149,14 +152,14 @@ export class AuthController {
         try {
             const { email } = req.body;
             if (!email) {
-                return sendError(res, 400, "Email is required");
+                return (0, response_1.sendError)(res, 400, "Email is required");
             }
             // Instead of password login, trigger OTP flow
             return AuthController.sendOTP(req, res);
         }
         catch (error) {
             console.error("Login error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     static async register(req, res) {
@@ -173,21 +176,21 @@ export class AuthController {
                 !postcode ||
                 !city ||
                 !state) {
-                return sendError(res, 400, "Please fill in all required fields");
+                return (0, response_1.sendError)(res, 400, "Please fill in all required fields");
             }
             // Check if user exists
-            const existingUser = await db("user")
+            const existingUser = await (0, database_1.db)("user")
                 .where({ user_email: email, user_status: 1 })
                 .first();
             if (existingUser) {
-                return sendError(res, 409, "User already exists with this email");
+                return (0, response_1.sendError)(res, 409, "User already exists with this email");
             }
             // Check if MyKad number already exists
-            const existingMykad = await db("user")
+            const existingMykad = await (0, database_1.db)("user")
                 .where({ user_mykad_number: mykadNumber })
                 .first();
             if (existingMykad) {
-                return sendError(res, 409, "User already exists with this MyKad number");
+                return (0, response_1.sendError)(res, 409, "User already exists with this MyKad number");
             }
             // Prepare user data for insertion
             const userData = {
@@ -213,7 +216,7 @@ export class AuthController {
                 user_social_media: socialMedia ? JSON.stringify(socialMedia) : null,
             };
             // Create user
-            const [user] = await db("user")
+            const [user] = await (0, database_1.db)("user")
                 .insert(userData)
                 .returning([
                 "user_id",
@@ -224,11 +227,11 @@ export class AuthController {
                 "user_state",
                 "user_city",
             ]);
-            return sendSuccess(res, { user }, "User registered successfully");
+            return (0, response_1.sendSuccess)(res, { user }, "User registered successfully");
         }
         catch (error) {
             console.error("Register error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     /**
@@ -238,15 +241,15 @@ export class AuthController {
         try {
             const refreshToken = req.cookies.refreshToken;
             if (!refreshToken) {
-                return sendError(res, 401, "Refresh token not provided");
+                return (0, response_1.sendError)(res, 401, "Refresh token not provided");
             }
             try {
                 // Verify refresh token
-                const decoded = verifyRefreshToken(refreshToken);
+                const decoded = (0, jwt_1.verifyRefreshToken)(refreshToken);
                 // Get user details to ensure user still exists
-                const user = await db("user").where({ user_id: decoded.id }).first();
+                const user = await (0, database_1.db)("user").where({ user_id: decoded.id }).first();
                 if (!user) {
-                    return sendError(res, 401, "User not found");
+                    return (0, response_1.sendError)(res, 401, "User not found");
                 }
                 // Generate new access token
                 const tokenPayload = {
@@ -254,8 +257,8 @@ export class AuthController {
                     email: user.user_email,
                     role: user.user_role || "user",
                 };
-                const newAccessToken = generateAccessToken(tokenPayload);
-                const newRefreshToken = generateRefreshToken(tokenPayload);
+                const newAccessToken = (0, jwt_1.generateAccessToken)(tokenPayload);
+                const newRefreshToken = (0, jwt_1.generateRefreshToken)(tokenPayload);
                 // Set new refresh token as HTTP-only cookie
                 res.cookie("refreshToken", newRefreshToken, {
                     httpOnly: true,
@@ -263,19 +266,19 @@ export class AuthController {
                     sameSite: "strict",
                     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
                 });
-                return sendSuccess(res, {
+                return (0, response_1.sendSuccess)(res, {
                     access_token: newAccessToken,
                 }, "Token refreshed successfully");
             }
             catch (error) {
                 // Refresh token is invalid or expired
                 res.clearCookie("refreshToken");
-                return sendError(res, 401, "Invalid or expired refresh token");
+                return (0, response_1.sendError)(res, 401, "Invalid or expired refresh token");
             }
         }
         catch (error) {
             console.error("Refresh token error:", error);
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
     static async logout(req, res) {
@@ -286,7 +289,7 @@ export class AuthController {
             if (userId) {
                 // Update user's logged in status
                 try {
-                    await db("user")
+                    await (0, database_1.db)("user")
                         .where({ user_id: userId })
                         .update({ user_logged_in: 0 });
                 }
@@ -296,11 +299,12 @@ export class AuthController {
                 }
             }
             res.clearCookie("refreshToken");
-            return sendSuccess(res, {}, "Logged out successfully");
+            return (0, response_1.sendSuccess)(res, {}, "Logged out successfully");
         }
         catch (error) {
-            return sendError(res, 500, "Internal server error");
+            return (0, response_1.sendError)(res, 500, "Internal server error");
         }
     }
 }
+exports.AuthController = AuthController;
 //# sourceMappingURL=auth.controller.js.map

@@ -1,40 +1,43 @@
-import { db } from "../config/database";
-import { sendSuccess, sendError } from "../utils/response";
-export class OperatorDashboardController {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.OperatorDashboardController = void 0;
+const database_1 = require("../config/database");
+const response_1 = require("../utils/response");
+class OperatorDashboardController {
     /**
      * Get dashboard statistics for operator
      */
     static async getDashboardStats(req, res) {
         try {
             // Get operator's state code
-            const operatorState = await db("operator")
+            const operatorState = await (0, database_1.db)("operator")
                 .select("states.state_code as code", "states.state_title as name")
                 .leftJoin("states", "states.state_id", "operator.op_states_id")
                 .where("op_user_id", req.user?.id)
                 .first();
             if (!operatorState) {
-                return sendError(res, 404, "Operator state not found");
+                return (0, response_1.sendError)(res, 404, "Operator state not found");
             }
             // Get total members in operator's state
-            const totalMembers = await db("user")
+            const totalMembers = await (0, database_1.db)("user")
                 .where("user_state", operatorState.code)
                 .where("user_status", 1)
                 .count("user_id as count")
                 .first();
             // Get active members (status = 1)
-            const activeMembers = await db("user")
+            const activeMembers = await (0, database_1.db)("user")
                 .where("user_state", operatorState.code)
                 .where("user_status", 1)
                 .count("user_id as count")
                 .first();
             // Get pending applications (status = 2)
-            const pendingApplications = await db("user")
+            const pendingApplications = await (0, database_1.db)("user")
                 .where("user_state", operatorState.code)
                 .where("user_status", 2)
                 .count("user_id as count")
                 .first();
             // Get total products from users in this state
-            const totalProducts = await db("products")
+            const totalProducts = await (0, database_1.db)("products")
                 .join("businesses", "products.p_business_id", "businesses.b_id")
                 .join("user", "businesses.b_user_id", "user.user_id")
                 .where("user.user_state", operatorState.code)
@@ -43,7 +46,7 @@ export class OperatorDashboardController {
                 .count("products.p_id as count")
                 .first();
             // Get recent members count (joined in last 7 days)
-            const recentMembersCount = await db("user")
+            const recentMembersCount = await (0, database_1.db)("user")
                 .where("user_state", operatorState.code)
                 .where("user_status", 1)
                 .where("user_created_at", ">=", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
@@ -58,11 +61,11 @@ export class OperatorDashboardController {
                 stateName: operatorState.name,
                 stateCode: operatorState.code,
             };
-            return sendSuccess(res, { stats }, "Dashboard stats retrieved successfully");
+            return (0, response_1.sendSuccess)(res, { stats }, "Dashboard stats retrieved successfully");
         }
         catch (error) {
             console.error("Dashboard stats error:", error);
-            return sendError(res, 500, "Failed to load dashboard statistics");
+            return (0, response_1.sendError)(res, 500, "Failed to load dashboard statistics");
         }
     }
     /**
@@ -71,16 +74,16 @@ export class OperatorDashboardController {
     static async getRecentApplications(req, res) {
         try {
             // Get operator's state code
-            const operatorState = await db("operator")
+            const operatorState = await (0, database_1.db)("operator")
                 .select("states.state_code as code")
                 .leftJoin("states", "states.state_id", "operator.op_states_id")
                 .where("op_user_id", req.user?.id)
                 .first();
             if (!operatorState) {
-                return sendError(res, 404, "Operator state not found");
+                return (0, response_1.sendError)(res, 404, "Operator state not found");
             }
             // Get recent applications (last 10, only pending)
-            const applications = await db("user")
+            const applications = await (0, database_1.db)("user")
                 .select("user_id as id", "user_fullname as fullname", "user_email as email", "user_mykad_number as mykad_number", "user_created_at as apply_at", "user_status as status")
                 .where("user_status", 2) // pending status
                 .where("user_state", operatorState.code)
@@ -91,11 +94,11 @@ export class OperatorDashboardController {
                 ...app,
                 status: "pending",
             }));
-            return sendSuccess(res, { applications: formattedApplications }, "Recent applications retrieved successfully");
+            return (0, response_1.sendSuccess)(res, { applications: formattedApplications }, "Recent applications retrieved successfully");
         }
         catch (error) {
             console.error("Recent applications error:", error);
-            return sendError(res, 500, "Failed to load recent applications");
+            return (0, response_1.sendError)(res, 500, "Failed to load recent applications");
         }
     }
     /**
@@ -104,16 +107,16 @@ export class OperatorDashboardController {
     static async getRecentMembers(req, res) {
         try {
             // Get operator's state code
-            const operatorState = await db("operator")
+            const operatorState = await (0, database_1.db)("operator")
                 .select("states.state_code as code")
                 .leftJoin("states", "states.state_id", "operator.op_states_id")
                 .where("op_user_id", req.user?.id)
                 .first();
             if (!operatorState) {
-                return sendError(res, 404, "Operator state not found");
+                return (0, response_1.sendError)(res, 404, "Operator state not found");
             }
             // Get recent members (last 10, only active)
-            const members = await db("user")
+            const members = await (0, database_1.db)("user")
                 .select("user_id as id", "user_fullname as name", "user_email as email", "user_mobile_number as phone", "user_created_at as joinDate", "user_status as status")
                 .where("user_status", 1) // active status
                 .where("user_state", operatorState.code)
@@ -122,13 +125,13 @@ export class OperatorDashboardController {
             // Get business and product counts for each member
             const membersWithCounts = await Promise.all(members.map(async (member) => {
                 // Get business count
-                const businessCount = await db("businesses")
+                const businessCount = await (0, database_1.db)("businesses")
                     .where("b_user_id", member.id)
                     .where("b_status", 1)
                     .count("b_id as count")
                     .first();
                 // Get product count
-                const productCount = await db("products")
+                const productCount = await (0, database_1.db)("products")
                     .join("businesses", "products.p_business_id", "businesses.b_id")
                     .where("businesses.b_user_id", member.id)
                     .where("products.p_status", 1)
@@ -142,11 +145,11 @@ export class OperatorDashboardController {
                     productsCount: Number(productCount?.count || 0),
                 };
             }));
-            return sendSuccess(res, { members: membersWithCounts }, "Recent members retrieved successfully");
+            return (0, response_1.sendSuccess)(res, { members: membersWithCounts }, "Recent members retrieved successfully");
         }
         catch (error) {
             console.error("Recent members error:", error);
-            return sendError(res, 500, "Failed to load recent members");
+            return (0, response_1.sendError)(res, 500, "Failed to load recent members");
         }
     }
     /**
@@ -155,32 +158,32 @@ export class OperatorDashboardController {
     static async getDashboardOverview(req, res) {
         try {
             // Get operator's state code
-            const operatorState = await db("operator")
+            const operatorState = await (0, database_1.db)("operator")
                 .select("states.state_code as code", "states.state_title as name")
                 .leftJoin("states", "states.state_id", "operator.op_states_id")
                 .where("op_user_id", req.user?.id)
                 .first();
             if (!operatorState) {
-                return sendError(res, 404, "Operator state not found");
+                return (0, response_1.sendError)(res, 404, "Operator state not found");
             }
             // Get dashboard stats
             const [totalMembers, activeMembers, pendingApplications, totalProducts, recentMembersCount,] = await Promise.all([
-                db("user")
+                (0, database_1.db)("user")
                     .where("user_state", operatorState.code)
                     .where("user_status", 1)
                     .count("user_id as count")
                     .first(),
-                db("user")
+                (0, database_1.db)("user")
                     .where("user_state", operatorState.code)
                     .where("user_status", 1)
                     .count("user_id as count")
                     .first(),
-                db("user")
+                (0, database_1.db)("user")
                     .where("user_state", operatorState.code)
                     .where("user_status", 2)
                     .count("user_id as count")
                     .first(),
-                db("products")
+                (0, database_1.db)("products")
                     .join("businesses", "products.p_business_id", "businesses.b_id")
                     .join("user", "businesses.b_user_id", "user.user_id")
                     .where("user.user_state", operatorState.code)
@@ -188,7 +191,7 @@ export class OperatorDashboardController {
                     .where("products.p_status", 1)
                     .count("products.p_id as count")
                     .first(),
-                db("user")
+                (0, database_1.db)("user")
                     .where("user_state", operatorState.code)
                     .where("user_status", 1)
                     .where("user_created_at", ">=", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
@@ -196,14 +199,14 @@ export class OperatorDashboardController {
                     .first(),
             ]);
             // Get recent applications
-            const recentApplications = await db("user")
+            const recentApplications = await (0, database_1.db)("user")
                 .select("user_id as id", "user_fullname as fullname", "user_email as email", "user_created_at as apply_at")
                 .where("user_status", 2)
                 .where("user_state", operatorState.code)
                 .orderBy("user_created_at", "desc")
                 .limit(5);
             // Get recent members
-            const recentMembers = await db("user")
+            const recentMembers = await (0, database_1.db)("user")
                 .select("user_id as id", "user_fullname as name", "user_email as email", "user_created_at as joinDate")
                 .where("user_status", 1)
                 .where("user_state", operatorState.code)
@@ -212,12 +215,12 @@ export class OperatorDashboardController {
             // Get counts for recent members
             const recentMembersWithCounts = await Promise.all(recentMembers.map(async (member) => {
                 const [businessCount, productCount] = await Promise.all([
-                    db("businesses")
+                    (0, database_1.db)("businesses")
                         .where("b_user_id", member.id)
                         .where("b_status", 1)
                         .count("b_id as count")
                         .first(),
-                    db("products")
+                    (0, database_1.db)("products")
                         .join("businesses", "products.p_business_id", "businesses.b_id")
                         .where("businesses.b_user_id", member.id)
                         .where("products.p_status", 1)
@@ -248,12 +251,13 @@ export class OperatorDashboardController {
                 })),
                 recentMembers: recentMembersWithCounts,
             };
-            return sendSuccess(res, overview, "Dashboard overview retrieved successfully");
+            return (0, response_1.sendSuccess)(res, overview, "Dashboard overview retrieved successfully");
         }
         catch (error) {
             console.error("Dashboard overview error:", error);
-            return sendError(res, 500, "Failed to load dashboard overview");
+            return (0, response_1.sendError)(res, 500, "Failed to load dashboard overview");
         }
     }
 }
+exports.OperatorDashboardController = OperatorDashboardController;
 //# sourceMappingURL=operator-dashboard.controller.js.map
