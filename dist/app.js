@@ -21,14 +21,22 @@ const app = express();
 // Security middleware
 app.use(helmet());
 app.use(cors({
-    origin: ["http://localhost:3000", "http://localhost:5173"],
+    // origin: process.env.ALLOWED_ORIGINS?.split(",") || [
+    //   "http://localhost:3000",
+    //   "http://localhost:5173",
+    // ],
+    origin: [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://myngo.kipidap.my",
+    ],
     credentials: true,
-    exposedHeaders: ["X-New-Access-Token"], // Expose our custom header to client
+    exposedHeaders: ["X-New-Access-Token"],
 }));
 // Rate limiting
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100, // limit each IP to 100 requests per windowMs
+    windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+    max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
 });
 app.use(limiter);
 // General middleware

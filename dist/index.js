@@ -1,8 +1,9 @@
-import app from './app';
-import { testConnection } from './config/database';
-import dotenv from 'dotenv';
+import app from "./app";
+import { testConnection } from "./config/database";
+import dotenv from "dotenv";
 dotenv.config();
-const PORT = process.env.API_SERVER_PORT || process.env.BACKEND_PORT || 3002;
+// const PORT = process.env.API_SERVER_PORT || process.env.BACKEND_PORT || 3002;
+const PORT = process.env.PORT || 3001;
 const startServer = async () => {
     try {
         // Test database connection
@@ -10,11 +11,11 @@ const startServer = async () => {
         // Start server
         app.listen(PORT, () => {
             console.log(`🚀 Backend server running on port ${PORT}`);
-            console.log(`📍 API available at http://localhost:${PORT}/api`);
+            console.log(`📍 API available at http://localhost:${PORT}`);
         });
     }
     catch (error) {
-        console.error('Failed to start server:', error);
+        console.error("Failed to start server:", error);
         process.exit(1);
     }
 };
