@@ -140,12 +140,20 @@ export class AuthController {
 
       let operatorStates = null;
 
-      // IF role is "operator" then need to get operator states
-      if (user.user_role === "operator") {
+      // Check if user is operator too
+      const isOperator = await db("operator")
+        .where("op_user_id", user.user_id)
+        .first();
+
+      if (isOperator) {
         operatorStates = await db("states")
           .where({ state_code: user.user_state })
           .select("state_title", "state_code", "state_flag")
           .first();
+      }
+
+      // IF role is "operator" then need to get operator states
+      if (user.user_role === "operator") {
       }
 
       // Generate tokens
@@ -186,6 +194,7 @@ export class AuthController {
         res,
         {
           user: userWithoutPassword,
+          is_operator: isOperator ? true : false,
           operator_states: operatorStates,
           access_token: accessToken,
         },

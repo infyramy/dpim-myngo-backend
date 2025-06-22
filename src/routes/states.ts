@@ -13,6 +13,9 @@ router.use("/admin", authenticateToken);
 // Get states with admin information
 router.get("/admin", StatesController.getStatesWithAdmins);
 
+// Get available users for a specific state
+router.get("/admin/:stateId/users", StatesController.getAvailableUsersForState);
+
 // Assign admin to a state
 router.post("/admin/assign", StatesController.assignAdmin);
 
@@ -20,6 +23,6 @@ router.post("/admin/assign", StatesController.assignAdmin);
 router.put("/admin/:stateId", StatesController.updateAdmin);
 
 // Remove admin from a state
-router.delete("/admin/:stateId", StatesController.removeAdmin);
+router.delete("/admin/:stateId/:userId", StatesController.removeAdmin);
 
 export default router;
