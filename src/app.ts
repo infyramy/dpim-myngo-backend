@@ -1,10 +1,13 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import compression from "compression";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
+// Add Node.js types for process.env
+// @ts-ignore
+import process from "process";
 
 import authRoutes from "./routes/auth";
 import userRoutes from "./routes/users";
@@ -25,15 +28,18 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    // origin: process.env.ALLOWED_ORIGINS?.split(",") || [
-    //   "http://localhost:3000",
-    //   "http://localhost:5173",
-    // ],
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:5173",
-      "https://myngo.kipidap.my",
-    ],
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      if (!origin) return callback(null, true); // allow non-browser requests
+      const allowed = [
+        /^https?:\/\/(.*\.)?myngo\.my$/,
+        /^http:\/\/localhost:3000$/,
+        /^http:\/\/localhost:5173$/,
+      ];
+      if (allowed.some((re) => re.test(origin))) {
+        return callback(null, true);
+      }
+      callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
     exposedHeaders: ["X-New-Access-Token"],
   })
@@ -68,8 +74,11 @@ app.use("/admin-dashboard", adminDashboardRoutes);
 app.use("/members", membersRoutes);
 
 // Health check
-app.get("/health", (_req, res) => {
-  res.json({ status: "OK", timestamp: new Date().toISOString() });
-});
+app.get(
+  "/health",
+  (_req: express.Request, res: express.Response) => {
+    res.json({ status: "OK", timestamp: new Date().toISOString() });
+  }
+);
 
 export default app;
