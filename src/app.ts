@@ -31,8 +31,10 @@ app.use(
       if (process.env.ALLOWED_ORIGINS) {
         allowedOrigins = process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim());
       }
-      // Always allow dpim.myngo.my
+      // Always allow dpim.myngo.my and localhost
       allowedOrigins.push("https://dpim.myngo.my");
+      allowedOrigins.push("https://api.myngo.my");
+      allowedOrigins.push("http://localhost:3000");
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
