@@ -26,15 +26,18 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    // origin: process.env.ALLOWED_ORIGINS?.split(",") || [
-    //   "http://localhost:3000",
-    //   "http://localhost:5173",
-    // ],
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:5173",
-      "https://myngo.kipidap.my",
-    ],
+    origin: (origin, callback) => {
+      let allowedOrigins: string[] = [];
+      if (process.env.ALLOWED_ORIGINS) {
+        allowedOrigins = process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim());
+      }
+      // Always allow dpim.myngo.my
+      allowedOrigins.push("https://dpim.myngo.my");
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
     exposedHeaders: ["X-New-Access-Token"],
   })
