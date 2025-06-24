@@ -33,7 +33,7 @@ router.get('/businesses/:filename', (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
   
   // Send the file
-  res.sendFile(filePath);
+  return res.sendFile(filePath);
 });
 
 // Serve product images with proper CORS headers
@@ -65,7 +65,7 @@ router.get('/products/:filename', (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
   
   // Send the file
-  res.sendFile(filePath);
+  return res.sendFile(filePath);
 });
 
 export default router; 

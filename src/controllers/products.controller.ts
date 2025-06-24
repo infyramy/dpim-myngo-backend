@@ -391,14 +391,12 @@ export class ProductsController {
    */
   static async createProduct(req: Request, res: Response) {
     try {
-      console.log("Create product request body:", req.body);
       console.log("Create product request files:", req.files);
 
       let {
         name,
         description,
         category,
-        image,
         link,
         status,
         featured,
@@ -593,14 +591,12 @@ export class ProductsController {
   static async updateProduct(req: Request, res: Response) {
     try {
       const productId = req.params.id;
-      console.log("Update product request body:", req.body);
       console.log("Update product request files:", req.files);
 
       let {
         name,
         description,
         category,
-        image,
         link,
         status,
         featured,
