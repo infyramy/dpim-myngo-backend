@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { BusinessesController } from "../controllers/businesses.controller";
 import { authenticateToken } from "../middleware/auth";
+import { uploadBusinessImages } from "../middleware/upload";
 
 const router = Router();
 
@@ -11,9 +12,9 @@ router.get("/", BusinessesController.getBusinesses);
 
 router.get("/:id", BusinessesController.getBusinessById);
 
-router.post("/", BusinessesController.createBusiness);
+router.post("/", uploadBusinessImages, BusinessesController.createBusiness);
 
-router.put("/:id", BusinessesController.updateBusiness);
+router.put("/:id", uploadBusinessImages, BusinessesController.updateBusiness);
 
 router.delete("/:id", BusinessesController.deleteBusiness);
 

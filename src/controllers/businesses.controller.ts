@@ -26,7 +26,7 @@ export class BusinessesController {
           "b_category as category",
           "b_mof_registration as mofRegistration",
           "b_mof_registration_number as mofRegistrationNumber",
-          "b_url as url",
+          "b_images as images",
           "b_created_at as createdAt",
           "b_modified_at as modifiedAt"
         )
@@ -34,10 +34,11 @@ export class BusinessesController {
         .where("b_user_id", userId)
         .orderBy("b_created_at", "desc");
 
-      // Convert mofRegistered to boolean for each business
+      // Convert mofRegistered to boolean and parse images JSON for each business
       const formattedBusinesses = businesses.map((business) => ({
         ...business,
         mofRegistration: business.mofRegistration === "1",
+        images: business.images ? JSON.parse(business.images) : [],
       }));
 
       return sendSuccess(
@@ -66,7 +67,6 @@ export class BusinessesController {
         category,
         mofRegistration,
         mofRegistrationNumber,
-        url,
       } = req.body;
 
       // Basic validation
@@ -103,12 +103,13 @@ export class BusinessesController {
         return sendError(res, 400, "Invalid phone number format");
       }
 
-      // Validate URL if provided
-      if (url && url.trim()) {
-        const urlPattern = /^https?:\/\/.+\..+/;
-        if (!urlPattern.test(url)) {
-          return sendError(res, 400, "Invalid URL format");
-        }
+      // Get uploaded images
+      const uploadedFiles = req.files as Express.Multer.File[];
+      let imagePaths: string[] = [];
+      
+      if (uploadedFiles && uploadedFiles.length > 0) {
+        // Create paths that match our new image route
+        imagePaths = uploadedFiles.map(file => `/images/businesses/${file.filename}`);
       }
 
       // Check if SSM number already exists
@@ -141,7 +142,7 @@ export class BusinessesController {
         b_category: category,
         b_mof_registration: mofRegistration ? 1 : 0,
         b_mof_registration_number: mofRegistration ? mofRegistrationNumber?.trim() || null : null,
-        b_url: url?.trim() || null,
+        b_images: imagePaths.length > 0 ? JSON.stringify(imagePaths) : null,
         b_user_id: userId,
         b_status: 1, // Active status
       };
@@ -162,17 +163,18 @@ export class BusinessesController {
           "b_category as category",
           "b_mof_registration as mofRegistration",
           "b_mof_registration_number as mofRegistrationNumber",
-          "b_url as url",
+          "b_images as images",
           "b_created_at as createdAt",
           "b_modified_at as modifiedAt"
         )
         .where("b_id", businessId)
         .first();
 
-      // Convert mofRegistered to boolean
+      // Convert mofRegistered to boolean and parse images
       const formattedBusiness = {
         ...createdBusiness,
         mofRegistration: createdBusiness.mofRegistration === 1,
+        images: createdBusiness.images ? JSON.parse(createdBusiness.images) : [],
       };
 
       return sendSuccess(
@@ -202,7 +204,6 @@ export class BusinessesController {
         category,
         mofRegistration,
         mofRegistrationNumber,
-        url,
       } = req.body;
 
       // Validate business ID
@@ -261,12 +262,24 @@ export class BusinessesController {
         return sendError(res, 400, "Invalid phone number format");
       }
 
-      // Validate URL if provided
-      if (url && url.trim()) {
-        const urlPattern = /^https?:\/\/.+\..+/;
-        if (!urlPattern.test(url)) {
-          return sendError(res, 400, "Invalid URL format");
-        }
+      // Handle images (both new uploads and existing ones)
+      const uploadedFiles = req.files as Express.Multer.File[];
+      let imagePaths: string[] = [];
+      
+      // Get existing images to keep (if provided)
+      const existingImages = req.body.existingImages ? JSON.parse(req.body.existingImages) : [];
+      imagePaths = [...existingImages];
+      
+      // Add new uploaded images
+      if (uploadedFiles && uploadedFiles.length > 0) {
+        const newImagePaths = uploadedFiles.map(file => `/images/businesses/${file.filename}`);
+        imagePaths = [...imagePaths, ...newImagePaths];
+      }
+      
+      // If no existing images specified and no new files, keep current images
+      if (imagePaths.length === 0 && (!req.body.existingImages)) {
+        const currentImages = existingBusiness.b_images ? JSON.parse(existingBusiness.b_images) : [];
+        imagePaths = currentImages;
       }
 
       // Check if SSM number already exists for other businesses
@@ -295,7 +308,7 @@ export class BusinessesController {
         b_category: category,
         b_mof_registration: mofRegistration ? 1 : 0,
         b_mof_registration_number: mofRegistration ? mofRegistrationNumber?.trim() || null : null,
-        b_url: url?.trim() || null,
+        b_images: imagePaths.length > 0 ? JSON.stringify(imagePaths) : null,
         b_modified_at: new Date(),
       };
 
@@ -318,17 +331,18 @@ export class BusinessesController {
           "b_category as category",
           "b_mof_registration as mofRegistration",
           "b_mof_registration_number as mofRegistrationNumber",
-          "b_url as url",
+          "b_images as images",
           "b_created_at as createdAt",
           "b_modified_at as modifiedAt"
         )
         .where("b_id", businessId)
         .first();
 
-      // Convert mofRegistered to boolean
+      // Convert mofRegistered to boolean and parse images
       const formattedBusiness = {
         ...updatedBusiness,
         mofRegistration: updatedBusiness.mofRegistration === "1",
+        images: updatedBusiness.images ? JSON.parse(updatedBusiness.images) : [],
       };
 
       return sendSuccess(
@@ -422,7 +436,7 @@ export class BusinessesController {
           "b_category as category",
           "b_mof_registration as mofRegistration",
           "b_mof_registration_number as mofRegistrationNumber",
-          "b_url as url",
+          "b_images as images",
           "b_created_at as createdAt",
           "b_modified_at as modifiedAt"
         )
@@ -435,10 +449,11 @@ export class BusinessesController {
         return sendError(res, 404, "Business not found or access denied");
       }
 
-      // Convert mofRegistered to boolean
+      // Convert mofRegistered to boolean and parse images
       const formattedBusiness = {
         ...business,
         mofRegistration: business.mofRegistration === "1",
+        images: business.images ? JSON.parse(business.images) : [],
       };
 
       return sendSuccess(

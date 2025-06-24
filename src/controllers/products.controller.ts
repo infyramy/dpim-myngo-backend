@@ -23,6 +23,7 @@ export class ProductsController {
           "products.p_description as description",
           "products.p_category as category",
           "products.p_image_url as image",
+          "products.p_images as images",
           "products.p_link as link",
           "products.p_status as status",
           "products.p_featured as featured",
@@ -101,6 +102,7 @@ export class ProductsController {
           image:
             product.image ||
             "https://placehold.co/600x400/e2e8f0/64748b?text=No+Image",
+          images: product.images ? JSON.parse(product.images) : [],
           link: product.link,
           status: product.status === 1 ? "active" : "inactive",
           featured: product.featured === 1,
@@ -184,6 +186,7 @@ export class ProductsController {
           "products.p_description as description",
           "products.p_category as category",
           "products.p_image_url as image",
+          "products.p_images as images",
           "products.p_link as link",
           "products.p_status as status",
           "products.p_featured as featured",
@@ -247,6 +250,7 @@ export class ProductsController {
         image:
           product.image ||
           "https://placehold.co/600x400/e2e8f0/64748b?text=No+Image",
+        images: product.images ? JSON.parse(product.images) : [],
         link: product.link,
         status: product.status === 1 ? "active" : "inactive",
         featured: product.featured === 1,
@@ -292,10 +296,12 @@ export class ProductsController {
     tagNames: string[],
     userId: number
   ): Promise<Tag[]> {
+    console.log("createOrGetTags called with:", tagNames, "userId:", userId);
     const tags: Tag[] = [];
 
     for (const tagName of tagNames) {
       const cleanTagName = tagName.trim().toLowerCase();
+      console.log("Processing tag:", tagName, "-> cleaned:", cleanTagName);
       if (!cleanTagName) continue;
 
       // Generate slug
@@ -305,19 +311,30 @@ export class ProductsController {
         .replace(/-+/g, "-")
         .replace(/^-+|-+$/g, "");
 
+      console.log("Generated slug:", slug);
+
       // Check if tag exists for this user
       let existingTag = await db("tags")
         .where("t_name", cleanTagName)
         .where("t_user_id", userId)
         .first();
 
+      console.log("Existing tag found:", existingTag);
+
       if (!existingTag) {
         // Create new tag
+        console.log("Creating new tag:", {
+          t_name: cleanTagName,
+          t_slug: slug,
+          t_user_id: userId,
+        });
         const [tagId] = await db("tags").insert({
           t_name: cleanTagName,
           t_slug: slug,
           t_user_id: userId,
         });
+
+        console.log("New tag created with ID:", tagId);
 
         existingTag = {
           t_id: tagId,
@@ -333,6 +350,7 @@ export class ProductsController {
       });
     }
 
+    console.log("Returning tags:", tags);
     return tags;
   }
 
@@ -340,8 +358,18 @@ export class ProductsController {
    * Helper method to associate tags with a product
    */
   static async associateProductTags(productId: number, tagIds: number[]) {
+    console.log(
+      "associateProductTags called with productId:",
+      productId,
+      "tagIds:",
+      tagIds
+    );
+
     // Remove existing associations
-    await db("product_tags").where("pt_product_id", productId).del();
+    const deletedCount = await db("product_tags")
+      .where("pt_product_id", productId)
+      .del();
+    console.log("Deleted existing associations:", deletedCount);
 
     // Add new associations
     if (tagIds.length > 0) {
@@ -350,7 +378,11 @@ export class ProductsController {
         pt_tag_id: tagId,
       }));
 
-      await db("product_tags").insert(productTagData);
+      console.log("Inserting product tag associations:", productTagData);
+      const result = await db("product_tags").insert(productTagData);
+      console.log("Insert result:", result);
+    } else {
+      console.log("No tag IDs to associate");
     }
   }
 
@@ -359,7 +391,10 @@ export class ProductsController {
    */
   static async createProduct(req: Request, res: Response) {
     try {
-      const {
+      console.log("Create product request body:", req.body);
+      console.log("Create product request files:", req.files);
+
+      let {
         name,
         description,
         category,
@@ -370,6 +405,56 @@ export class ProductsController {
         businessId,
         tags: tagNames = [],
       } = req.body;
+
+      console.log(
+        "Raw link value:",
+        link,
+        "type:",
+        typeof link,
+        "length:",
+        link?.length
+      );
+      console.log("Is link an array?", Array.isArray(link));
+      if (Array.isArray(link)) {
+        console.log("Link array contents:", link);
+        console.log("Link array first element:", link[0]);
+      }
+
+      // Parse tags if they come as JSON string (from FormData)
+      if (typeof tagNames === "string") {
+        try {
+          tagNames = JSON.parse(tagNames);
+        } catch (e) {
+          console.error("Error parsing tags:", e);
+          tagNames = [];
+        }
+      }
+
+      // Parse featured field properly - handle string values from FormData
+      if (typeof featured === "string") {
+        featured = featured === "true";
+      }
+
+      console.log("Parsed tags:", tagNames);
+      console.log("Parsed featured:", featured, "type:", typeof featured);
+
+      // Process link field properly
+      let processedLink = null;
+      if (link) {
+        if (Array.isArray(link)) {
+          // If link is an array, take the first element
+          if (
+            link.length > 0 &&
+            typeof link[0] === "string" &&
+            link[0].trim()
+          ) {
+            processedLink = link[0].trim();
+          }
+        } else if (typeof link === "string" && link.trim()) {
+          processedLink = link.trim();
+        }
+      }
+      console.log("Processed link:", processedLink);
 
       // Basic validation
       if (!name || !description || !category) {
@@ -409,13 +494,31 @@ export class ProductsController {
         counter++;
       }
 
+      // Handle images (both new uploads and existing ones)
+      const uploadedFiles = req.files as Express.Multer.File[];
+      let imagePaths: string[] = [];
+
+      // Get existing images to keep (if provided)
+      const existingImages = req.body.existingImages
+        ? JSON.parse(req.body.existingImages)
+        : [];
+      imagePaths = [...existingImages];
+
+      // Add new uploaded images
+      if (uploadedFiles && uploadedFiles.length > 0) {
+        const newImagePaths = uploadedFiles.map(
+          (file) => `/images/products/${file.filename}`
+        );
+        imagePaths = [...imagePaths, ...newImagePaths];
+      }
+
       // Prepare product data for database insertion
       const productData = {
         p_name: name.trim(),
         p_description: description.trim(),
         p_category: category,
-        p_image_url: image?.trim() || null,
-        p_link: link?.trim() || null,
+        p_images: imagePaths.length > 0 ? JSON.stringify(imagePaths) : null,
+        p_link: processedLink,
         p_status: status === "active" ? 1 : 0,
         p_featured: featured ? 1 : 0,
         p_slug: finalSlug,
@@ -423,18 +526,26 @@ export class ProductsController {
         p_user_id: userId,
       };
 
+      console.log("Product data to insert:", productData);
+
       // Insert the product
       const [productId] = await db("products").insert(productData);
 
       // Handle tags
       let productTags: Tag[] = [];
       if (Array.isArray(tagNames) && tagNames.length > 0) {
+        console.log("Creating/getting tags:", tagNames);
         productTags = await ProductsController.createOrGetTags(
           tagNames,
           userId
         );
+        console.log("Created/retrieved tags:", productTags);
         const tagIds = productTags.map((tag) => tag.id);
+        console.log("Tag IDs to associate:", tagIds);
         await ProductsController.associateProductTags(productId, tagIds);
+        console.log("Tags associated successfully");
+      } else {
+        console.log("No tags to process:", tagNames);
       }
 
       // Fetch the created product with proper field mapping
@@ -444,7 +555,7 @@ export class ProductsController {
           "p_name as name",
           "p_description as description",
           "p_category as category",
-          "p_image_url as image",
+          "p_images as images",
           "p_link as link",
           "p_status as status",
           "p_featured as featured",
@@ -461,9 +572,7 @@ export class ProductsController {
         ...createdProduct,
         status: createdProduct.status === 1 ? "active" : "inactive",
         featured: createdProduct.featured === 1,
-        image:
-          createdProduct.image ||
-          "https://placehold.co/600x400/e2e8f0/64748b?text=No+Image",
+        images: createdProduct.images ? JSON.parse(createdProduct.images) : [],
         tags: productTags,
       };
 
@@ -484,7 +593,10 @@ export class ProductsController {
   static async updateProduct(req: Request, res: Response) {
     try {
       const productId = req.params.id;
-      const {
+      console.log("Update product request body:", req.body);
+      console.log("Update product request files:", req.files);
+
+      let {
         name,
         description,
         category,
@@ -495,6 +607,56 @@ export class ProductsController {
         businessId,
         tags: tagNames = [],
       } = req.body;
+
+      console.log(
+        "Update: Raw link value:",
+        link,
+        "type:",
+        typeof link,
+        "length:",
+        link?.length
+      );
+      console.log("Update: Is link an array?", Array.isArray(link));
+      if (Array.isArray(link)) {
+        console.log("Update: Link array contents:", link);
+        console.log("Update: Link array first element:", link[0]);
+      }
+
+      // Parse tags if they come as JSON string (from FormData)
+      if (typeof tagNames === "string") {
+        try {
+          tagNames = JSON.parse(tagNames);
+        } catch (e) {
+          console.error("Error parsing tags:", e);
+          tagNames = [];
+        }
+      }
+
+      // Parse featured field properly - handle string values from FormData
+      if (typeof featured === "string") {
+        featured = featured === "true";
+      }
+
+      console.log("Parsed tags:", tagNames);
+      console.log("Parsed featured:", featured, "type:", typeof featured);
+
+      // Process link field properly
+      let processedLink = null;
+      if (link) {
+        if (Array.isArray(link)) {
+          // If link is an array, take the first element
+          if (
+            link.length > 0 &&
+            typeof link[0] === "string" &&
+            link[0].trim()
+          ) {
+            processedLink = link[0].trim();
+          }
+        } else if (typeof link === "string" && link.trim()) {
+          processedLink = link.trim();
+        }
+      }
+      console.log("Update: Processed link:", processedLink);
 
       // Validate product ID
       if (!productId || isNaN(Number(productId))) {
@@ -553,19 +715,47 @@ export class ProductsController {
         }
       }
 
+      // Handle images (both new uploads and existing ones)
+      const uploadedFiles = req.files as Express.Multer.File[];
+      let imagePaths: string[] = [];
+
+      // Get existing images to keep (if provided)
+      const existingImages = req.body.existingImages
+        ? JSON.parse(req.body.existingImages)
+        : [];
+      imagePaths = [...existingImages];
+
+      // Add new uploaded images
+      if (uploadedFiles && uploadedFiles.length > 0) {
+        const newImagePaths = uploadedFiles.map(
+          (file) => `/images/products/${file.filename}`
+        );
+        imagePaths = [...imagePaths, ...newImagePaths];
+      }
+
+      // If no existing images specified and no new files, keep current images
+      if (imagePaths.length === 0 && !req.body.existingImages) {
+        const currentImages = existingProduct.p_images
+          ? JSON.parse(existingProduct.p_images)
+          : [];
+        imagePaths = currentImages;
+      }
+
       // Prepare product data for update
       const productData = {
         p_name: name.trim(),
         p_description: description.trim(),
         p_category: category,
-        p_image_url: image?.trim() || null,
-        p_link: link?.trim() || null,
+        p_images: imagePaths.length > 0 ? JSON.stringify(imagePaths) : null,
+        p_link: processedLink,
         p_status: status === "active" ? 1 : 0,
         p_featured: featured ? 1 : 0,
         p_slug: finalSlug,
         p_business_id: businessId || null,
         p_modified_at: new Date(),
       };
+
+      console.log("Update: Product data to update:", productData);
 
       // Update the product
       await db("products")
@@ -576,16 +766,21 @@ export class ProductsController {
       // Handle tags
       let productTags: Tag[] = [];
       if (Array.isArray(tagNames) && tagNames.length > 0) {
+        console.log("Update: Creating/getting tags:", tagNames);
         productTags = await ProductsController.createOrGetTags(
           tagNames,
           userId
         );
+        console.log("Update: Created/retrieved tags:", productTags);
         const tagIds = productTags.map((tag) => tag.id);
+        console.log("Update: Tag IDs to associate:", tagIds);
         await ProductsController.associateProductTags(
           Number(productId),
           tagIds
         );
+        console.log("Update: Tags associated successfully");
       } else {
+        console.log("Update: No tags to process, removing all tags:", tagNames);
         // Remove all tags if no tags provided
         await ProductsController.associateProductTags(Number(productId), []);
       }
@@ -597,7 +792,7 @@ export class ProductsController {
           "p_name as name",
           "p_description as description",
           "p_category as category",
-          "p_image_url as image",
+          "p_images as images",
           "p_link as link",
           "p_status as status",
           "p_featured as featured",
@@ -614,9 +809,7 @@ export class ProductsController {
         ...updatedProduct,
         status: updatedProduct.status === 1 ? "active" : "inactive",
         featured: updatedProduct.featured === 1,
-        image:
-          updatedProduct.image ||
-          "https://placehold.co/600x400/e2e8f0/64748b?text=No+Image",
+        images: updatedProduct.images ? JSON.parse(updatedProduct.images) : [],
         tags: productTags,
       };
 
@@ -701,7 +894,7 @@ export class ProductsController {
           "p_name as name",
           "p_description as description",
           "p_category as category",
-          "p_image_url as image",
+          "p_images as images",
           "p_link as link",
           "p_status as status",
           "p_featured as featured",
@@ -729,9 +922,7 @@ export class ProductsController {
         ...product,
         status: product.status === 1 ? "active" : "inactive",
         featured: product.featured === 1,
-        image:
-          product.image ||
-          "https://placehold.co/600x400/e2e8f0/64748b?text=No+Image",
+        images: product.images ? JSON.parse(product.images) : [],
         tags: tags,
       };
 

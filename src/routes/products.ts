@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { ProductsController } from "../controllers/products.controller";
 import { authenticateToken } from "../middleware/auth";
+import { uploadProductImages } from "../middleware/upload";
 
 const router = Router();
 
@@ -18,9 +19,9 @@ router.get("/tags/all", ProductsController.getUserTags);
 
 router.get("/:id", ProductsController.getProductById);
 
-router.post("/", ProductsController.createProduct);
+router.post("/", uploadProductImages, ProductsController.createProduct);
 
-router.put("/:id", ProductsController.updateProduct);
+router.put("/:id", uploadProductImages, ProductsController.updateProduct);
 
 router.delete("/:id", ProductsController.deleteProduct);
 

@@ -18,6 +18,7 @@ import dashboardRoutes from "./routes/dashboard";
 import operatorDashboardRoutes from "./routes/operator-dashboard";
 import adminDashboardRoutes from "./routes/admin-dashboard";
 import membersRoutes from "./routes/members";
+import imagesRoutes from "./routes/images";
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.use("/dashboard", dashboardRoutes);
 app.use("/operator-dashboard", operatorDashboardRoutes);
 app.use("/admin-dashboard", adminDashboardRoutes);
 app.use("/members", membersRoutes);
+app.use("/images", imagesRoutes);
 
 // Health check
 app.get("/health", (_req, res) => {
