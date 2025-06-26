@@ -29,7 +29,9 @@ app.use(
     origin: (origin, callback) => {
       let allowedOrigins: string[] = [];
       if (process.env.ALLOWED_ORIGINS) {
-        allowedOrigins = process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim());
+        allowedOrigins = process.env.ALLOWED_ORIGINS.split(",").map((o) =>
+          o.trim()
+        );
       }
       // Always allow dpim.myngo.my and localhost
       allowedOrigins.push("https://dpim.myngo.my");
@@ -43,6 +45,12 @@ app.use(
     credentials: true,
     exposedHeaders: ["X-New-Access-Token"],
   })
+);
+
+app.use(
+  "/static",
+  cors({ origin: "https://dpim.myngo.my" }),
+  express.static("public")
 );
 
 // Rate limiting
