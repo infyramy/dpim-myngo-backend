@@ -15,7 +15,11 @@ router.get('/businesses/:filename', (req, res) => {
   }
   
   // Set CORS headers explicitly
-  res.header('Access-Control-Allow-Origin', req.headers.origin);
+  const allowedOrigins = ['https://dpim.myngo.my', 'https://api.myngo.my', 'http://localhost:3000'];
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Credentials', 'true');
   
   // Set proper content type based on file extension
@@ -47,7 +51,11 @@ router.get('/products/:filename', (req, res) => {
   }
   
   // Set CORS headers explicitly
-  res.header('Access-Control-Allow-Origin', req.headers.origin);
+  const allowedOrigins = ['https://dpim.myngo.my', 'https://api.myngo.my', 'http://localhost:3000'];
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Credentials', 'true');
   
   // Set proper content type based on file extension
